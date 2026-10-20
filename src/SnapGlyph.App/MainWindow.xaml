@@ -1,0 +1,309 @@
+<Window x:Class="SnapGlyph.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="SnapGlyph"
+        Height="820"
+        Width="1240"
+        MinHeight="560"
+        MinWidth="900"
+        Background="#16181D"
+        Foreground="#E8EAED"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+        AllowDrop="True"
+        Drop="Window_Drop"
+        PreviewKeyDown="Window_PreviewKeyDown">
+    <Window.Resources>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#2B333E" />
+            <Setter Property="Foreground" Value="#E8EAED" />
+            <Setter Property="BorderBrush" Value="#46515E" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ButtonBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="#394554" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="#1C232C" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.42" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="AccentButtonStyle"
+               TargetType="Button"
+               BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="#1F6F5C" />
+            <Setter Property="BorderBrush" Value="#2C9A80" />
+            <Setter Property="Foreground" Value="#F4FFFC" />
+        </Style>
+    </Window.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Background="#20242B" BorderBrush="#343A44" BorderThickness="0,0,0,1">
+            <StackPanel Margin="12,9">
+                <WrapPanel>
+                    <Button x:Name="OpenButton"
+                            Content="打开图片"
+                            Padding="14,7"
+                            Margin="0,0,8,0"
+                            Style="{StaticResource AccentButtonStyle}"
+                            Click="OpenButton_Click" />
+                    <Button x:Name="CaptureButton"
+                            Content="截图 / 选区"
+                            Padding="14,7"
+                            Margin="0,0,8,0"
+                            Click="CaptureButton_Click" />
+                    <Button x:Name="QrButton"
+                            Content="扫码"
+                            Padding="14,7"
+                            Margin="0,0,8,0"
+                            Click="QrButton_Click" />
+                    <Button x:Name="EditButton"
+                            Content="旋转 / 透视"
+                            Padding="14,7"
+                            Margin="0,0,8,0"
+                            IsEnabled="False"
+                            Click="EditButton_Click" />
+                    <Button x:Name="OcrButton"
+                            Content="识别文字"
+                            Padding="14,7"
+                            Margin="0,0,8,0"
+                            IsEnabled="False"
+                            Click="OcrButton_Click" />
+                    <Button x:Name="ClearSelectionButton"
+                            Content="清除选区"
+                            Padding="14,7"
+                            IsEnabled="False"
+                            Click="ClearSelectionButton_Click" />
+                    <Button x:Name="ShortcutButton"
+                            Content="设置"
+                            Padding="14,7"
+                            Margin="8,0,0,0"
+                            Click="ShortcutButton_Click" />
+                </WrapPanel>
+                <TextBlock x:Name="HintText"
+                           Text="Esc 隐藏到托盘 · 截图 Ctrl+Shift+A · OCR Ctrl+Shift+Z · 透视 Ctrl+Shift+W · 扫码 Ctrl+Shift+Q"
+                           Foreground="#AAB1BC"
+                           VerticalAlignment="Center"
+                           TextWrapping="Wrap"
+                           Margin="2,7,0,0" />
+            </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="360" />
+            </Grid.ColumnDefinitions>
+
+            <Grid x:Name="ImageViewport"
+                  Grid.Column="0"
+                  Background="#111318"
+                  ClipToBounds="True"
+                  Cursor="Cross"
+                  SizeChanged="ImageViewport_SizeChanged"
+                  MouseDown="ImageViewport_MouseDown"
+                  MouseMove="ImageViewport_MouseMove"
+                  MouseUp="ImageViewport_MouseUp"
+                  MouseWheel="ImageViewport_MouseWheel">
+                <Canvas x:Name="ImageCanvas"
+                        Background="Transparent">
+                    <Image x:Name="ImageView"
+                           Stretch="Fill"
+                           RenderOptions.BitmapScalingMode="HighQuality"
+                           IsHitTestVisible="False" />
+                    <Rectangle x:Name="ImageFrame"
+                               Fill="Transparent"
+                               Stroke="#3B434F"
+                               StrokeThickness="1"
+                               IsHitTestVisible="False" />
+                    <Rectangle x:Name="SelectionRect"
+                               Stroke="#00E5FF"
+                               StrokeThickness="2"
+                               Fill="#2200E5FF"
+                               Visibility="Collapsed"
+                               IsHitTestVisible="False" />
+                </Canvas>
+
+                <Border Background="#D921252D"
+                        CornerRadius="4"
+                        Padding="10,6"
+                        Margin="12"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Top"
+                        IsHitTestVisible="False">
+                    <TextBlock Text="左键框选 · 右键/中键拖动 · 滚轮缩放 · 双击适应窗口"
+                               Foreground="#D7DDE5"
+                               FontSize="12" />
+                </Border>
+
+                <Border Background="#D921252D"
+                        CornerRadius="4"
+                        Padding="9,5"
+                        Margin="12"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Bottom"
+                        IsHitTestVisible="False">
+                    <TextBlock x:Name="ViewInfoText"
+                               Text="未载入图片"
+                               Foreground="#8EF0C2"
+                               FontSize="12" />
+                </Border>
+            </Grid>
+
+            <Border Grid.Column="1"
+                    Background="#1C2027"
+                    BorderBrush="#343A44"
+                    BorderThickness="1,0,0,0"
+                    Padding="16">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,8">
+                            <TextBlock x:Name="ResultHeader"
+                                       Text="识别结果"
+                                       FontSize="15"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center" />
+                            <StackPanel Orientation="Horizontal"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Center"
+                                        AutomationProperties.Name="识别模式选择">
+                                <TextBlock Text="识别模式"
+                                           Foreground="#AAB1BC"
+                                           FontSize="12"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0" />
+                                <ComboBox x:Name="ModeComboBox"
+                                          Width="100"
+                                          SelectedIndex="0"
+                                          AutomationProperties.Name="识别模式"
+                                          SelectionChanged="ModeComboBox_SelectionChanged">
+                                    <ComboBoxItem Content="自动判断" />
+                                    <ComboBoxItem Content="号码" />
+                                    <ComboBoxItem Content="文字" />
+                                </ComboBox>
+                            </StackPanel>
+                        </Grid>
+                        <TextBlock x:Name="ResultHintText"
+                                   Text="在左侧拖拽只包含号码或文字的区域，再点击“识别文字”；未框选时会识别整张图，也可直接按 Ctrl+Shift+Z。"
+                                   Foreground="#9099A6"
+                                   FontSize="12"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,8" />
+                        <TextBox x:Name="NumberBox"
+                                 IsReadOnly="True"
+                                 AcceptsReturn="True"
+                                 FontFamily="Consolas"
+                                 FontSize="22"
+                                 TextWrapping="Wrap"
+                                 VerticalScrollBarVisibility="Auto"
+                                 Padding="10"
+                                 MinHeight="56"
+                                 Background="#111318"
+                                 Foreground="#8EF0C2"
+                                 BorderBrush="#3B4754" />
+                        <Button x:Name="CopyButton"
+                                Content="复制结果"
+                                Padding="12,8"
+                                Margin="0,8,0,12"
+                                IsEnabled="False"
+                                ToolTip="只复制当前选中的单行识别结果或扫码内容"
+                                Click="CopyButton_Click" />
+
+                        <TextBlock x:Name="StatusText"
+                                   Foreground="#AAB1BC"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,12" />
+
+                        <TextBlock Text="候选行"
+                                   FontWeight="SemiBold"
+                                   Margin="0,0,0,6" />
+                        <ListBox x:Name="CandidateList"
+                                 MinHeight="120"
+                                 MaxHeight="280"
+                                 Background="#111318"
+                                 Foreground="#E8EAED"
+                                 BorderBrush="#3B4754"
+                                 SelectionChanged="CandidateList_SelectionChanged">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="4,3">
+                                        <TextBlock Text="{Binding DisplayText}"
+                                                   FontFamily="Consolas"
+                                                   FontSize="15"
+                                                   Foreground="#8EF0C2" />
+                                        <TextBlock Text="{Binding ScoreText}"
+                                                   FontSize="11"
+                                                   Foreground="#9099A6" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+
+                        <Expander x:Name="SuppressedExpander"
+                                  Header="已抑制的重复框（只诊断）"
+                                  Foreground="#D8B7A0"
+                                  Visibility="Collapsed"
+                                  Margin="0,12,0,0">
+                            <StackPanel>
+                                <TextBlock Text="这些框与上面的候选重叠，已被去重，不能参与号码拼接。"
+                                           Foreground="#AAB1BC"
+                                           TextWrapping="Wrap"
+                                           Margin="0,6,0,6" />
+                                <ListBox x:Name="SuppressedList"
+                                         MinHeight="70"
+                                         MaxHeight="220"
+                                         Background="#111318"
+                                         Foreground="#E0A28A"
+                                         BorderBrush="#5B4038">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding SuppressedText}"
+                                                       FontFamily="Consolas"
+                                                       FontSize="12"
+                                                       TextWrapping="Wrap" />
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </StackPanel>
+                        </Expander>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+
+        <StatusBar Grid.Row="2" Background="#20242B" Foreground="#AAB1BC">
+            <StatusBarItem>
+                <TextBlock x:Name="FooterText" Text="就绪" />
+            </StatusBarItem>
+        </StatusBar>
+    </Grid>
+</Window>

@@ -1,0 +1,324 @@
+<Window x:Class="SnapGlyph.App.TransformEditorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SnapGlyph - 旋转 / 透视"
+        Height="840"
+        Width="1200"
+        MinHeight="660"
+        MinWidth="980"
+        Background="#16181D"
+        Foreground="#F3F5F7"
+        WindowStartupLocation="CenterOwner"
+        PreviewKeyDown="Window_PreviewKeyDown">
+    <Window.Resources>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#2B333E" />
+            <Setter Property="Foreground" Value="#F3F5F7" />
+            <Setter Property="BorderBrush" Value="#53606E" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ButtonBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="#3A4655" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="#1C232C" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.42" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="CornerHandleStyle" TargetType="Thumb">
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Cursor" Value="SizeAll" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Thumb">
+                        <Grid Background="Transparent">
+                            <Ellipse x:Name="Halo"
+                                     Fill="#4400E5FF"
+                                     Stroke="#E8FBFF"
+                                     StrokeThickness="1" />
+                            <Ellipse x:Name="Dot"
+                                     Width="17"
+                                     Height="17"
+                                     Fill="#00E5FF"
+                                     Stroke="#081015"
+                                     StrokeThickness="2" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Halo" Property="Fill" Value="#66FFC107" />
+                                <Setter TargetName="Dot" Property="Fill" Value="#FFC107" />
+                            </Trigger>
+                            <Trigger Property="IsDragging" Value="True">
+                                <Setter TargetName="Halo" Property="Fill" Value="#88FFC107" />
+                                <Setter TargetName="Dot" Property="Fill" Value="#FFE082" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0"
+                Background="#20242B"
+                BorderBrush="#3B434F"
+                BorderThickness="0,0,0,1">
+            <WrapPanel Margin="14,10">
+                <Button Content="左转 90°"
+                        Padding="11,6"
+                        Margin="0,0,6,0"
+                        Click="RotateLeft_Click" />
+                <Button Content="右转 90°"
+                        Padding="11,6"
+                        Margin="0,0,8,0"
+                        Click="RotateRight_Click" />
+                <Button x:Name="AutoAlignButton"
+                        Content="AI 自动校正"
+                        Padding="11,6"
+                        Margin="0,0,16,0"
+                        Click="AutoAlign_Click" />
+                <TextBlock Text="自由旋转"
+                           Foreground="#F3F5F7"
+                           VerticalAlignment="Center"
+                           Margin="0,0,7,0" />
+                <Slider x:Name="AngleSlider"
+                        Width="190"
+                        Minimum="-180"
+                        Maximum="180"
+                        TickFrequency="1"
+                        IsSnapToTickEnabled="False"
+                        VerticalAlignment="Center"
+                        ValueChanged="AngleSlider_ValueChanged" />
+                <TextBlock x:Name="AngleLabel"
+                           Text="0°"
+                           Foreground="#F3F5F7"
+                           Width="52"
+                           VerticalAlignment="Center"
+                           Margin="7,0,10,0" />
+                <Button Content="应用角度"
+                        Padding="11,6"
+                        Margin="0,0,18,0"
+                        Click="ApplyRotation_Click" />
+                <CheckBox x:Name="PerspectiveCheck"
+                          Content="四角透视"
+                          Foreground="#F3F5F7"
+                          IsChecked="True"
+                          VerticalAlignment="Center"
+                          Checked="PerspectiveCheck_Changed"
+                          Unchecked="PerspectiveCheck_Changed" />
+                <Button Content="应用透视"
+                        Padding="11,6"
+                        Margin="10,0,12,0"
+                        Click="ApplyPerspective_Click" />
+                <Button Content="OCR 框选"
+                        Padding="11,6"
+                        Margin="0,0,12,0"
+                        Click="BeginOcrSelection_Click" />
+                <Button Content="重置"
+                        Padding="11,6"
+                        Click="Reset_Click" />
+            </WrapPanel>
+        </Border>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="370" />
+            </Grid.ColumnDefinitions>
+
+            <Grid Grid.Column="0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <DockPanel Margin="14,9,14,8">
+                    <TextBlock Text="原始画布"
+                               Foreground="#F3F5F7"
+                               FontSize="13"
+                               FontWeight="SemiBold" />
+                    <TextBlock Text="四个点可拖到图片外侧；保持左上 → 右上 → 右下 → 左下顺序"
+                               Foreground="#C6CDD6"
+                               Margin="14,0,0,0"
+                               VerticalAlignment="Center" />
+                </DockPanel>
+
+                <Border Grid.Row="1"
+                        Margin="14,0,14,14"
+                        Background="#0B0E12"
+                        BorderBrush="#3B434F"
+                        BorderThickness="1"
+                        ClipToBounds="True">
+                    <Grid>
+                        <Canvas x:Name="EditorCanvas"
+                                Background="#0B0E12"
+                                ClipToBounds="True"
+                                SizeChanged="EditorCanvas_SizeChanged">
+                            <Rectangle x:Name="ImageFrame"
+                                       Fill="#12161C"
+                                       Stroke="#526071"
+                                       StrokeThickness="1"
+                                       IsHitTestVisible="False" />
+                            <Image x:Name="PreviewImage"
+                                   Stretch="Fill"
+                                   RenderOptions.BitmapScalingMode="HighQuality"
+                                   IsHitTestVisible="False" />
+                            <Polygon x:Name="QuadPolygon"
+                                     Stroke="#00E5FF"
+                                     StrokeThickness="2"
+                                     Fill="#1400E5FF"
+                                     IsHitTestVisible="False" />
+                            <Thumb x:Name="Corner0"
+                                   Tag="0"
+                                   ToolTip="左上角"
+                                   Style="{StaticResource CornerHandleStyle}"
+                                   Panel.ZIndex="10"
+                                   DragDelta="Corner_DragDelta" />
+                            <Thumb x:Name="Corner1"
+                                   Tag="1"
+                                   ToolTip="右上角"
+                                   Style="{StaticResource CornerHandleStyle}"
+                                   Panel.ZIndex="10"
+                                   DragDelta="Corner_DragDelta" />
+                            <Thumb x:Name="Corner2"
+                                   Tag="2"
+                                   ToolTip="右下角"
+                                   Style="{StaticResource CornerHandleStyle}"
+                                   Panel.ZIndex="10"
+                                   DragDelta="Corner_DragDelta" />
+                            <Thumb x:Name="Corner3"
+                                   Tag="3"
+                                   ToolTip="左下角"
+                                   Style="{StaticResource CornerHandleStyle}"
+                                   Panel.ZIndex="10"
+                                   DragDelta="Corner_DragDelta" />
+                        </Canvas>
+                        <Canvas x:Name="OcrInputSurface"
+                                Background="#01000000"
+                                Cursor="Cross"
+                                Visibility="Collapsed"
+                                MouseLeftButtonDown="EditorCanvas_MouseLeftButtonDown"
+                                MouseMove="EditorCanvas_MouseMove"
+                                MouseLeftButtonUp="EditorCanvas_MouseLeftButtonUp"
+                                MouseRightButtonDown="EditorCanvas_MouseRightButtonDown">
+                            <Rectangle x:Name="OcrSelectionRect"
+                                       Stroke="#FFC107"
+                                       StrokeThickness="2"
+                                       Fill="#22FFC107"
+                                       Visibility="Collapsed"
+                                       IsHitTestVisible="False" />
+                        </Canvas>
+                        <TextBlock Text="拖动圆点调整四角"
+                                   Foreground="#98A3B0"
+                                   HorizontalAlignment="Left"
+                                   VerticalAlignment="Bottom"
+                                   Margin="12"
+                                   IsHitTestVisible="False" />
+                        <Border x:Name="OcrModeBanner"
+                                Visibility="Collapsed"
+                                Background="#E621252D"
+                                BorderBrush="#FFC107"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="14,8"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Top"
+                                Margin="0,12,0,0"
+                                IsHitTestVisible="False">
+                            <TextBlock Text="OCR 选区模式：在调整后的图片上拖拽文字区域，Esc 取消"
+                                       Foreground="#FFE082"
+                                       FontSize="13"
+                                       FontWeight="SemiBold" />
+                        </Border>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <Border Grid.Column="1"
+                    Background="#101318"
+                    BorderBrush="#3B434F"
+                    BorderThickness="1,0,0,0"
+                    Padding="14">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="实时预览"
+                               Foreground="#F3F5F7"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               Margin="0,0,0,9" />
+                    <Border Grid.Row="1"
+                            Background="#181D24"
+                            BorderBrush="#3B434F"
+                            BorderThickness="1"
+                            Padding="8">
+                        <Image x:Name="LivePreviewImage"
+                               Stretch="Uniform"
+                               RenderOptions.BitmapScalingMode="HighQuality"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center" />
+                    </Border>
+                    <TextBlock x:Name="LivePreviewInfo"
+                               Grid.Row="2"
+                               Foreground="#C6CDD6"
+                               Text="拖动四角或旋转滑块，这里会持续更新。"
+                               TextWrapping="Wrap"
+                               Margin="0,10,0,0" />
+                </Grid>
+            </Border>
+        </Grid>
+
+        <Border Grid.Row="2"
+                Background="#20242B"
+                BorderBrush="#3B434F"
+                BorderThickness="0,1,0,0">
+            <DockPanel Margin="14,10">
+                <TextBlock x:Name="EditorStatus"
+                           Text="Ctrl+Shift+Z 会在左侧画布进入 OCR 框选；未应用的调整会先自动提交。"
+                           Foreground="#D7DDE5"
+                           TextWrapping="Wrap"
+                           VerticalAlignment="Center"
+                           Margin="0,0,16,0" />
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                    <Button Content="完成"
+                            Padding="20,7"
+                            Margin="0,0,8,0"
+                            Click="Finish_Click" />
+                    <Button Content="取消"
+                            Padding="20,7"
+                            Click="Cancel_Click" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+    </Grid>
+</Window>

@@ -1,0 +1,17 @@
+<Project>
+  <PropertyGroup>
+    <_SnapGlyphVersion>$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)..\VERSION').Trim())</_SnapGlyphVersion>
+    <Version>$(_SnapGlyphVersion)</Version>
+    <AssemblyVersion>$(_SnapGlyphVersion).0</AssemblyVersion>
+    <FileVersion>$(_SnapGlyphVersion).0</FileVersion>
+    <Product>SnapGlyph</Product>
+    <Description>Offline Windows tool for control capture, OCR, and barcode scanning.</Description>
+    <Company>SnapGlyph contributors</Company>
+    <Authors>SnapGlyph contributors</Authors>
+    <Copyright>Copyright (c) 2026 SnapGlyph contributors</Copyright>
+    <RepositoryUrl>https://github.com/Emilia-EMT/SnapGlyph</RepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <NeutralLanguage>zh-CN</NeutralLanguage>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+</Project>

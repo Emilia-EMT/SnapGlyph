@@ -1,0 +1,45 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+[Aa]rtifacts/
+.vs/
+.idea/
+*.user
+*.suo
+*.nupkg
+*.snupkg
+
+# Local deliverables and scratch work
+/outputs/
+/work/
+/Captures/
+*.zip
+*.7z
+*.log
+*.part
+
+# Models are downloaded from the manifest, not committed to Git
+/models/*
+!/models/README.md
+!/models/MANIFEST.sha256
+
+# Test and private images
+/*.jpg
+/*.jpeg
+/*.png
+/*.bmp
+/*.tif
+/*.tiff
+test*.jpg
+test*.jpeg
+test*.png
+
+# User-specific and generated files
+/CHANGELOG.md
+*.tmp
+*.bak
+*.bak-*
+*.cache
+.env
+Thumbs.db
+Desktop.ini
