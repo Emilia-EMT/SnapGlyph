@@ -1,0 +1,93 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing release tag, for example v1.0.0"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  windows-release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout release commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Validate tag and version
+        shell: pwsh
+        run: |
+          $tag = if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            "${{ inputs.tag }}"
+          } else {
+            $env:GITHUB_REF_NAME
+          }
+          if ($tag -notmatch '^v\d+\.\d+\.\d+$') {
+            throw "Invalid release tag: $tag"
+          }
+
+          $version = (Get-Content VERSION -Raw).Trim()
+          if ($tag -ne "v$version") {
+            throw "Tag $tag does not match VERSION $version"
+          }
+
+          git rev-parse --verify "refs/tags/$tag" | Out-Null
+          "RELEASE_TAG=$tag" >> $env:GITHUB_ENV
+          "RELEASE_VERSION=$version" >> $env:GITHUB_ENV
+
+      - name: Fetch and verify models
+        shell: pwsh
+        run: .\scripts\fetch-models.ps1
+
+      - name: Build portable release
+        shell: pwsh
+        run: .\scripts\build-release.ps1
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: SnapGlyph-portable-win-x64
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            outputs/SnapGlyph-portable-win-x64-v*.zip
+            outputs/SnapGlyph-portable-win-x64-v*.zip.sha256
+
+      - name: Publish GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = $env:RELEASE_VERSION
+          $tag = $env:RELEASE_TAG
+          $zip = "outputs/SnapGlyph-portable-win-x64-v$version.zip"
+          $checksum = "$zip.sha256"
+
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $tag $zip $checksum --clobber
+          } else {
+            gh release create $tag $zip $checksum `
+              --verify-tag `
+              --title "SnapGlyph $version" `
+              --generate-notes `
+              --latest
+          }
